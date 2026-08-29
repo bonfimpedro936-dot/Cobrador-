@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Cobrador</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+    font-family:Arial,sans-serif;
+    background:#f3f4f6;
+    color:#111827;
+    padding-bottom:80px
+}
+header{
+    background:#2563eb;
+    color:white;
+    padding:20px 16px;
+    text-align:center;
+    position:sticky;
+    top:0;
+    z-index:10
+}
+header h1{font-size:24px}
+header p{font-size:13px;margin-top:5px;opacity:.9}
+
+.container{max-width:600px;margin:auto;padding:15px}
+
+.resumo{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
+    margin-bottom:15px
+}
+.card{
+    background:white;
+    border-radius:12px;
+    padding:14px 8px;
+    text-align:center;
+    box-shadow:0 2px 8px #00000012
+}
+.card small{font-size:11px;color:#6b7280}
+.card strong{display:block;font-size:17px;margin-top:5px}
+
+.filtros{
+    display:flex;
+    gap:8px;
+    margin-bottom:12px
+}
+.filtros input,.filtros select{
+    flex:1;
+    padding:12px;
+    border:1px solid #d1d5db;
+    border-radius:10px;
+    background:white;
+    font-size:14px
+}
+
+.lista{display:flex;flex-direction:column;gap:10px}
+
+.cliente{
+    background:white;
+    border-radius:14px;
+    padding:15px;
+    box-shadow:0 2px 8px #00000012
+}
+.topo{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px
+}
+.nome{font-size:17px;font-weight:bold}
+.valor{font-size:18px;font-weight:bold;color:#dc2626}
+.info{
+    color:#6b7280;
+    font-size:13px;
+    margin-top:7px
+}
+.status{
+    display:inline-block;
+    padding:5px 9px;
+    border-radius:20px;
+    font-size:12px;
+    margin-top:9px
+}
+.pendente{background:#fee2e2;color:#991b1b}
+.pago{background:#dcfce7;color:#166534}
+
+.acoes{
+    display:flex;
+    gap:7px;
+    margin-top:12px
+}
+button{
+    border:0;
+    border-radius:9px;
+    padding:10px 12px;
+    cursor:pointer;
+    font-weight:bold
+}
+.btn-pagar{background:#16a34a;color:white;flex:1}
+.btn-editar{background:#e5e7eb;color:#111827}
+.btn-excluir{background:#fee2e2;color:#b91c1c}
+
+#btnAdicionar{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    width:58px;
+    height:58px;
+    border-radius:50%;
+    background:#2563eb;
+    color:white;
+    font-size:30px;
+    box-shadow:0 5px 15px #0004
+}
+
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:#0008;
+    z-index:20;
+    align-items:center;
+    justify-content:center;
+    padding:15px
+}
+.modal.ativo{display:flex}
+.caixa{
+    background:white;
+    width:100%;
+    max-width:500px;
+    border-radius:16px;
+    padding:20px
+}
+.caixa h2{margin-bottom:15px}
+.campo{margin-bottom:12px}
+.campo label{
+    display:block;
+    font-size:13px;
+    font-weight:bold;
+    margin-bottom:5px
+}
+.campo input{
+    width:100%;
+    padding:12px;
+    border:1px solid #d1d5db;
+    border-radius:9px;
+    font-size:15px
+}
+.botoes-modal{
+    display:flex;
+    gap:8px;
+    margin-top:15px
+}
+.salvar{
+    flex:1;
+    background:#2563eb;
+    color:white
+}
+.cancelar{background:#e5e7eb}
+
+.vazio{
+    text-align:center;
+    padding:40px 15px;
+    color:#6b7280
+}
+
+@media(max-width:400px){
+    .resumo{grid-template-columns:1fr}
+    .filtros{flex-direction:column}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>💰 Meu Cobrador</h1>
+    <p>Controle suas cobranças</p>
+</header>
+
+<div class="container">
+
+    <div class="resumo">
+        <div class="card">
+            <small>A RECEBER</small>
+            <strong id="totalPendente">R$ 0,00</strong>
+        </div>
+
+        <div class="card">
+            <small>RECEBIDO</small>
+            <strong id="totalPago">R$ 0,00</strong>
+        </div>
+
+        <div class="card">
+            <small>CLIENTES</small>
+            <strong id="totalClientes">0</strong>
+        </div>
+    </div>
+
+    <div class="filtros">
+        <input
+            type="search"
+            id="pesquisa"
+            placeholder="🔎 Procurar cliente..."
+            oninput="renderizar()">
+
+        <select id="filtro" onchange="renderizar()">
+            <option value="todos">Todos</option>
+            <option value="pendentes">Pendentes</option>
+            <option value="pagos">Pagos</option>
+        </select>
+    </div>
+
+    <div id="lista" class="lista"></div>
+
+</div>
+
+<button id="btnAdicionar" onclick="abrirModal()">+</button>
+
+<div class="modal" id="modal">
+    <div class="caixa">
+
+        <h2 id="tituloModal">Nova cobrança</h2>
+
+        <div class="campo">
+            <label>Nome do cliente</label>
+            <input id="nome" type="text" placeholder="Ex.: João">
+        </div>
+
+        <div class="campo">
+            <label>Valor</label>
+            <input id="valor" type="number" step="0.01" placeholder="0,00">
+        </div>
+
+        <div class="campo">
+            <label>Data da cobrança</label>
+            <input id="data" type="date">
+        </div>
+
+        <div class="campo">
+            <label>Observação</label>
+            <input id="observacao" type="text" placeholder="Ex.: Pagamento semanal">
+        </div>
+
+        <div class="botoes-modal">
+            <button class="cancelar" onclick="fecharModal()">Cancelar</button>
+            <button class="salvar" onclick="salvar()">Salvar</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+
+let cobrancas = JSON.parse(localStorage.getItem("cobrancas")) || [];
+let editando = null;
+
+function dinheiro(valor){
+    return Number(valor).toLocaleString("pt-BR",{
+        style:"currency",
+        currency:"BRL"
+    });
+}
+
+function dataBR(data){
+    if(!data) return "";
+    let partes = data.split("-");
+    return partes[2]+"/"+partes[1]+"/"+partes[0];
+}
+
+function salvarDados(){
+    localStorage.setItem("cobrancas",JSON.stringify(cobrancas));
+}
+
+function abrirModal(id=null){
+
+    editando = id;
+
+    document.getElementById("modal").classList.add("ativo");
+
+    if(id !== null){
+
+        let c = cobrancas.find(x => x.id === id);
+
+        document.getElementById("tituloModal").innerText =
+            "Editar cobrança";
+
+        document.getElementById("nome").value = c.nome;
+        document.getElementById("valor").value = c.valor;
+        document.getElementById("data").value = c.data;
+        document.getElementById("observacao").value =
+            c.observacao || "";
+
+    }else{
+
+        document.getElementById("tituloModal").innerText =
+            "Nova cobrança";
+
+        document.getElementById("nome").value = "";
+        document.getElementById("valor").value = "";
+        document.getElementById("data").value =
+            new Date().toISOString().split("T")[0];
+        document.getElementById("observacao").value = "";
+    }
+}
+
+function fecharModal(){
+    document.getElementById("modal").classList.remove("ativo");
+    editando = null;
+}
+
+function salvar(){
+
+    let nome = document.getElementById("nome").value.trim();
+    let valor = parseFloat(document.getElementById("valor").value);
+    let data = document.getElementById("data").value;
+    let observacao = document.getElementById("observacao").value.trim();
+
+    if(!nome){
+        alert("Digite o nome do cliente.");
+        return;
+    }
+
+    if(!valor || valor <= 0){
+        alert("Digite um valor válido.");
+        return;
+    }
+
+    if(!data){
+        alert("Informe a data.");
+        return;
+    }
+
+    if(editando !== null){
+
+        let c = cobrancas.find(x => x.id === editando);
+
+        c.nome = nome;
+        c.valor = valor;
+        c.data = data;
+        c.observacao = observacao;
+
+    }else{
+
+        cobrancas.push({
+            id: Date.now(),
+            nome: nome,
+            valor: valor,
+            data: data,
+            observacao: observacao,
+            pago: false,
+            dataPagamento: null
+        });
+    }
+
+    salvarDados();
+    fecharModal();
+    renderizar();
+}
+
+function marcarPago(id){
+
+    let c = cobrancas.find(x => x.id === id);
+
+    if(!c) return;
+
+    if(c.pago){
+
+        if(confirm("Deseja marcar esta cobrança novamente como pendente?")){
+            c.pago = false;
+            c.dataPagamento = null;
+        }
+
+    }else{
+
+        if(confirm("Confirmar pagamento de " + dinheiro(c.valor) + "?")){
+            c.pago = true;
+            c.dataPagamento =
+                new Date().toISOString().split("T")[0];
+        }
+    }
+
+    salvarDados();
+    renderizar();
+}
+
+function excluir(id){
+
+    let c = cobrancas.find(x => x.id === id);
+
+    if(!c) return;
+
+    if(confirm("Excluir a cobrança de " + c.nome + "?")){
+
+        cobrancas = cobrancas.filter(x => x.id !== id);
+
+        salvarDados();
+        renderizar();
+    }
+}
+
+function renderizar(){
+
+    let lista = document.getElementById("lista");
+
+    let pesquisa =
+        document.getElementById("pesquisa").value.toLowerCase();
+
+    let filtro =
+        document.getElementById("filtro").value;
+
+    let filtradas = cobrancas.filter(c => {
+
+        let nomeOK =
+            c.nome.toLowerCase().includes(pesquisa);
+
+        let statusOK =
+            filtro === "todos" ||
+            (filtro === "pagos" && c.pago) ||
+            (filtro === "pendentes" && !c.pago);
+
+        return nomeOK && statusOK;
+    });
+
+    filtradas.sort((a,b) =>
+        new Date(b.data) - new Date(a.data)
+    );
+
+    lista.innerHTML = "";
+
+    if(filtradas.length === 0){
+
+        lista.innerHTML = `
+            <div class="vazio">
+                <div style="font-size:45px">📋</div>
+                <p>Nenhuma cobrança encontrada.</p>
+            </div>
+        `;
+
+    }else{
+
+        filtradas.forEach(c => {
+
+            lista.innerHTML += `
+                <div class="cliente">
+
+                    <div class="topo">
+                        <div class="nome">
+                            ${escapar(c.nome)}
+                        </div>
+
+                        <div class="valor">
+                            ${dinheiro(c.valor)}
+                        </div>
+                    </div>
+
+                    <div class="info">
+                        📅 Cobrança: ${dataBR(c.data)}
+                    </div>
+
+                    ${
+                        c.observacao
+                        ? `<div class="info">📝 ${escapar(c.observacao)}</div>`
+                        : ""
+                    }
+
+                    ${
+                        c.pago
+                        ? `
+                        <span class="status pago">
+                            ✅ PAGO
+                            ${
+                                c.dataPagamento
+                                ? " em " + dataBR(c.dataPagamento)
+                                : ""
+                            }
+                        </span>
+                        `
+                        : `
+                        <span class="status pendente">
+                            ⏳ PENDENTE
+                        </span>
+                        `
+                    }
+
+                    <div class="acoes">
+
+                        <button
+                            class="btn-pagar"
+                            onclick="marcarPago(${c.id})">
+                            ${c.pago ? "↩️ Desfazer" : "✅ Recebi"}
+                        </button>
+
+                        <button
+                            class="btn-editar"
+                            onclick="abrirModal(${c.id})">
+                            ✏️
+                        </button>
+
+                        <button
+                            class="btn-excluir"
+                            onclick="excluir(${c.id})">
+                            🗑️
+                        </button>
+
+                    </div>
+
+                </div>
+            `;
+        });
+    }
+
+    atualizarResumo();
+}
+
+function atualizarResumo(){
+
+    let pendente = 0;
+    let pago = 0;
+
+    cobrancas.forEach(c => {
+
+        if(c.pago){
+            pago += Number(c.valor);
+        }else{
+            pendente += Number(c.valor);
+        }
+    });
+
+    document.getElementById("totalPendente").innerText =
+        dinheiro(pendente);
+
+    document.getElementById("totalPago").innerText =
+        dinheiro(pago);
+
+    document.getElementById("totalClientes").innerText =
+        cobrancas.length;
+}
+
+function escapar(texto){
+
+    return String(texto)
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+}
+
+renderizar();
+
+</script>
+
+</body>
+</html>
